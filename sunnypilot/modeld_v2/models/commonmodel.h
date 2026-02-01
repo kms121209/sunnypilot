@@ -64,15 +64,15 @@ protected:
 
 class DrivingModelFrame : public ModelFrame {
 public:
-  DrivingModelFrame(cl_device_id device_id, cl_context context, uint8_t buffer_length);
+  DrivingModelFrame(cl_device_id device_id, cl_context context, int width, int height, uint8_t buffer_length);
   ~DrivingModelFrame();
   cl_mem* prepare(cl_mem yuv_cl, int frame_width, int frame_height, int frame_stride, int frame_uv_offset, const mat3& projection);
 
-  const int MODEL_WIDTH = 512;
-  const int MODEL_HEIGHT = 256;
-  const int MODEL_FRAME_SIZE = MODEL_WIDTH * MODEL_HEIGHT * 3 / 2;
-  const int buf_size = MODEL_FRAME_SIZE * 2;
-  const size_t frame_size_bytes = MODEL_FRAME_SIZE * sizeof(uint8_t);
+  int MODEL_WIDTH;
+  int MODEL_HEIGHT;
+  int MODEL_FRAME_SIZE;
+  int buf_size;
+  size_t frame_size_bytes;
   const uint8_t buffer_length;
 
 private:

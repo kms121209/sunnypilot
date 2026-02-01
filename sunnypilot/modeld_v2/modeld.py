@@ -66,7 +66,7 @@ class ModelState(ModelStateBase):
     self.PLANPLUS_CONTROL: float = 1.0
 
     buffer_length = 5 if self.model_runner.is_20hz else 2
-    self.frames = {name: DrivingModelFrame(context, buffer_length) for name in self.model_runner.vision_input_names}
+    self.frames = {name: DrivingModelFrame(context, 512, 256, buffer_length) for name in self.model_runner.vision_input_names}
     self.prev_desire = np.zeros(self.constants.DESIRE_LEN, dtype=np.float32)
 
     # img buffers are managed in openCL transform code

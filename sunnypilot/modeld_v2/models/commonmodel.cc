@@ -5,7 +5,11 @@
 
 #include "common/clutil.h"
 
-DrivingModelFrame::DrivingModelFrame(cl_device_id device_id, cl_context context, uint8_t buffer_length) : ModelFrame(device_id, context), buffer_length(buffer_length) {
+DrivingModelFrame::DrivingModelFrame(cl_device_id device_id, cl_context context, int width, int height, uint8_t buffer_length) : ModelFrame(device_id, context), MODEL_WIDTH(width), MODEL_HEIGHT(height), buffer_length(buffer_length) {
+  MODEL_FRAME_SIZE = MODEL_WIDTH * MODEL_HEIGHT * 3 / 2;
+  buf_size = MODEL_FRAME_SIZE * 2;
+  frame_size_bytes = MODEL_FRAME_SIZE * sizeof(uint8_t);
+
   input_frames = std::make_unique<uint8_t[]>(buf_size);
   input_frames_cl = CL_CHECK_ERR(clCreateBuffer(context, CL_MEM_READ_WRITE, buf_size, NULL, &err));
   img_buffer_20hz_cl = CL_CHECK_ERR(clCreateBuffer(context, CL_MEM_READ_WRITE, buffer_length*frame_size_bytes, NULL, &err));

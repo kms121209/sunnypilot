@@ -20,7 +20,7 @@ cdef extern from "sunnypilot/modeld_v2/models/commonmodel.h":
 
   cppclass DrivingModelFrame:
     int buf_size
-    DrivingModelFrame(cl_device_id, cl_context, unsigned char)
+    DrivingModelFrame(cl_device_id, cl_context, int, int, unsigned char)
 
   cppclass MonitoringModelFrame:
     int buf_size

@@ -80,17 +80,21 @@ def use_sunnylink_uploader_shim(started, params, CP: car.CarParams) -> bool:
   """Shim for use_sunnylink_uploader to match the process manager signature."""
   return use_sunnylink_uploader(params)
 
+def is_modeld_sunny(started: bool, params: Params, CP: car.CarParams) -> bool:
+  """Check if the active model is modeld_sunny."""
+  return bool(params.get_bool("ModeldSunny"))
+
 def is_snpe_model(started, params, CP: car.CarParams) -> bool:
   """Check if the active model runner is SNPE."""
-  return bool(get_active_model_runner(params, not started) == custom.ModelManagerSP.Runner.snpe)
+  return bool(get_active_model_runner(params, not started) == custom.ModelManagerSP.Runner.snpe and not is_modeld_sunny(started, params, CP))
 
 def is_tinygrad_model(started, params, CP: car.CarParams) -> bool:
   """Check if the active model runner is SNPE."""
-  return bool(get_active_model_runner(params, not started) == custom.ModelManagerSP.Runner.tinygrad)
+  return bool(get_active_model_runner(params, not started) == custom.ModelManagerSP.Runner.tinygrad and not is_modeld_sunny(started, params, CP))
 
 def is_stock_model(started, params, CP: car.CarParams) -> bool:
   """Check if the active model runner is stock."""
-  return bool(get_active_model_runner(params, not started) == custom.ModelManagerSP.Runner.stock)
+  return bool(get_active_model_runner(params, not started) == custom.ModelManagerSP.Runner.stock and not is_modeld_sunny(started, params, CP))
 
 def mapd_ready(started: bool, params: Params, CP: car.CarParams) -> bool:
   return bool(os.path.exists(Paths.mapd_root()))
@@ -172,6 +176,7 @@ procs += [
   PythonProcess("models_manager", "sunnypilot.models.manager", only_offroad),
   NativeProcess("modeld_snpe", "sunnypilot/modeld", ["./modeld"], and_(only_onroad, is_snpe_model)),
   NativeProcess("modeld_tinygrad", "sunnypilot/modeld_v2", ["./modeld"], and_(only_onroad, is_tinygrad_model)),
+  PythonProcess("modeld_sunny", "sunnypilot.modeld_sunny.modeld", and_(only_onroad, is_modeld_sunny)),
 
   # Backup
   PythonProcess("backup_manager", "sunnypilot.sunnylink.backups.manager", and_(only_offroad, sunnylink_ready_shim)),

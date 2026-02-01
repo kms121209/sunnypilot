@@ -1,0 +1,32 @@
+import os
+import glob
+
+Import('env', 'arch')
+lenv = env.Clone()
+tinygrad_repo = env.Dir("#tinygrad_repo")
+tinygrad_files = ["#"+x for x in glob.glob(tinygrad_repo.relpath + "/**", recursive=True, root_dir=env.Dir("#").abspath) if 'pycache' not in x]
+
+def mayo_compile(flags, model_name):
+  pythonpath_string = f'PYTHONPATH="${{PYTHONPATH}}:{tinygrad_repo.abspath}"'
+  onnx_fn = f"distilled_models/{model_name}.onnx"
+  pkl_fn = f"distilled_models/{model_name}_tinygrad.pkl"
+  if not os.path.exists("distilled_models"):
+    try:
+      os.makedirs("distilled_models")
+    except OSError:
+      pass
+
+  if os.path.isfile(File(onnx_fn).abspath):
+    return lenv.Command(
+      pkl_fn,
+      [onnx_fn, "compile_split_tinygrad.py"] + tinygrad_files,
+      f'{pythonpath_string} {flags} python3 {File("compile_split_tinygrad.py").abspath} {File(onnx_fn).abspath} {File(pkl_fn).abspath}'
+    )
+
+flags = {
+  'larch64': 'DEV=QCOM',
+  'Darwin': f'DEV=METAL HOME={os.path.expanduser("~")} IMAGE=0',
+}.get(arch, 'DEV=CPU CPU_LLVM=1 IMAGE=0')
+
+for m in ["student_vision", "student_policy"]:
+  mayo_compile(flags, m)

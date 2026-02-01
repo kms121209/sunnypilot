@@ -3,14 +3,15 @@ import time
 
 from cereal import car, log, messaging
 from openpilot.common.params import Params
-from openpilot.system.manager.process_config import managed_processes, is_snpe_model, is_tinygrad_model, is_stock_model
+from openpilot.system.manager.process_config import managed_processes, is_snpe_model, is_tinygrad_model, is_stock_model, is_modeld_sunny
 from openpilot.system.hardware import HARDWARE
 
 if __name__ == "__main__":
   CP = car.CarParams(notCar=True, wheelbase=1, steerRatio=10)
   params = Params()
   params.put("CarParams", CP.to_bytes())
-
+  if is_modeld_sunny:= is_modeld_sunny(False, params, CP):
+    print("Using sunnypilot custom modeld")
   if use_snpe_modeld := is_snpe_model(False, params, CP):
     print("Using SNPE modeld")
   if use_tinygrad_modeld := is_tinygrad_model(False, params, CP):

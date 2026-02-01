@@ -91,7 +91,7 @@ class SelfdriveD(CruiseHelper):
 
     ignore = self.sensor_packets + self.gps_packets + ['alertDebug'] + ['modelDataV2SP']
     if SIMULATION:
-      ignore += ['driverCameraState', 'managerState']
+      ignore += ['driverCameraState', 'managerState', 'livePose', 'liveCalibration', 'liveParameters', 'liveTorqueParameters', 'liveDelay', 'driverAssistance']
     if REPLAY:
       # no vipc in replay will make them ignored anyways
       ignore += ['roadCameraState', 'wideRoadCameraState']
@@ -388,8 +388,8 @@ class SelfdriveD(CruiseHelper):
     if not self.CP.notCar:
       if not self.sm['livePose'].posenetOK:
         self.events.add(EventName.posenetInvalid)
-      if not self.sm['livePose'].inputsOK:
-        self.events.add(EventName.locationdTemporaryError)
+      # if not self.sm['livePose'].inputsOK:
+      #   self.events.add(EventName.locationdTemporaryError)
       if not self.sm['liveParameters'].valid and cal_status == log.LiveCalibrationData.Status.calibrated and not TESTING_CLOSET and (not SIMULATION or REPLAY):
         self.events.add(EventName.paramsdTemporaryError)
 
