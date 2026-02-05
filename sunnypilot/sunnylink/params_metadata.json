@@ -1199,6 +1199,20 @@
     "title": "Standstill Timer",
     "description": ""
   },
+  "SteeringCustomButtonMapping": {
+    "title": "SteeringCustomButtonMapping",
+    "description": "Customize the steering wheel custom/star button for openpilot control.",
+    "options": [
+      {
+        "value": 0,
+        "label": "Off"
+      },
+      {
+        "value": 1,
+        "label": "Bookmark"
+      }
+    ]
+  },
   "SubaruStopAndGo": {
     "title": "Subaru Stop and Go",
     "description": ""
