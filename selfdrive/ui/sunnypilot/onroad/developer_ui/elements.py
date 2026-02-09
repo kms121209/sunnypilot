@@ -10,12 +10,33 @@ from dataclasses import dataclass
 from openpilot.common.constants import CV
 
 
+from openpilot.system.ui.lib.text_measure import measure_text_cached
+
+
 @dataclass
 class UiElement:
   value: str
   label: str
   unit: str
   color: rl.Color
+  val_text: str = ""
+  label_text: str = ""
+  unit_text: str = ""
+  val_width: float = 0.0
+  label_width: float = 0.0
+  unit_width: float = 0.0
+  total_width: float = 0.0
+
+  def measure(self, font, font_size: int):
+    self.label_text = f"{self.label} "
+    self.val_text = self.value
+    self.unit_text = f" {self.unit}" if self.unit else ""
+
+    self.label_width = measure_text_cached(font, self.label_text, font_size, 0).x
+    self.val_width = measure_text_cached(font, self.val_text, font_size, 0).x
+    self.unit_width = measure_text_cached(font, self.unit_text, font_size, 0).x if self.unit else 0
+
+    self.total_width = self.label_width + self.val_width + self.unit_width
 
 
 class LeadInfoElement:
@@ -168,6 +189,31 @@ class DesiredLateralAccelElement(LateralControlElement):
     color = self.get_lat_color(lat_active, steer_override)
 
     return UiElement(value, "DESIRED L.A.", self.unit, color)
+
+
+class DesiredSteeringPIDElement(LateralControlElement):
+  def __init__(self):
+    self.unit = ""
+
+  def update(self, sm, is_metric: bool) -> UiElement:
+    car_state = sm['carState']
+    controls_state = sm['controlsState']
+    lat_active = sm['carControl'].latActive
+    angle_steers = car_state.steeringAngleDeg
+    steer_angle_desired = controls_state.lateralControlState.pidState.steeringAngleDesiredDeg
+
+    value = f"{steer_angle_desired:.1f}°" if lat_active else "-"
+
+    color = rl.WHITE
+    if lat_active:
+      if abs(angle_steers) > 180:
+        color = rl.RED
+      elif abs(angle_steers) > 90:
+        color = rl.Color(255, 188, 0, 255)
+      else:
+        color = rl.Color(0, 255, 0, 255)
+
+    return UiElement(value, "DESIRED STEER", self.unit, color)
 
 
 class AEgoElement:
