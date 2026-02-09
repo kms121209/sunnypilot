@@ -222,7 +222,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-  unblock_stdout()
+  # unblock_stdout()
 
   try:
     main()
