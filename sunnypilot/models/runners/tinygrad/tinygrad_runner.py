@@ -50,8 +50,8 @@ class TinygradRunner(ModelRunner, SupercomboTinygrad, PolicyTinygrad, VisionTiny
         raise
 
     # Map input names to their required dtype and device from the loaded model
-    self.input_to_dtype = {k: dtypes.float32 for k in self.input_shapes}
-    self.input_to_device = {k: Device.DEFAULT for k in self.input_shapes}
+    self.input_to_dtype = dict.fromkeys(self.input_shapes, dtypes.float32)
+    self.input_to_device = dict.fromkeys(self.input_shapes, Device.DEFAULT)
 
   @property
   def vision_input_names(self) -> list[str]:
