@@ -24,7 +24,7 @@ def draw_circle_gradient(center_x: float, center_y: float, radius: int,
 
 
 class ConfidenceBall(Widget, ConfidenceBallSP):
-  def __init__(self, demo: bool = False, scale: float = 1.0, visual: int = False):
+  def __init__(self, demo: bool = False, scale: float = 1.0, visual: int = 0):
     Widget.__init__(self)
     ConfidenceBallSP.__init__(self)
     self._demo = demo
