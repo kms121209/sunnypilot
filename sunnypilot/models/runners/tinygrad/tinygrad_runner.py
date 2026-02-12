@@ -10,8 +10,6 @@ from openpilot.sunnypilot.models.split_model_constants import SplitModelConstant
 from openpilot.sunnypilot.modeld_v2.constants import ModelConstants
 
 from tinygrad.tensor import Tensor
-from tinygrad.dtype import dtypes
-from tinygrad.device import Device
 
 
 class TinygradRunner(ModelRunner, SupercomboTinygrad, PolicyTinygrad, VisionTinygrad, OffPolicyTinygrad):
@@ -50,8 +48,12 @@ class TinygradRunner(ModelRunner, SupercomboTinygrad, PolicyTinygrad, VisionTiny
         raise
 
     # Map input names to their required dtype and device from the loaded model
-    self.input_to_dtype = dict.fromkeys(self.input_shapes, dtypes.float32)
-    self.input_to_device = dict.fromkeys(self.input_shapes, Device.DEFAULT)
+    self.input_to_dtype = {}
+    self.input_to_device = {}
+    for idx, name in enumerate(self.model_run.captured.expected_names):
+      info = self.model_run.captured.expected_input_info[idx]
+      self.input_to_dtype[name] = info[2]  # dtype
+      self.input_to_device[name] = info[3]  # device
 
   @property
   def vision_input_names(self) -> list[str]:
@@ -82,7 +84,7 @@ class TinygradRunner(ModelRunner, SupercomboTinygrad, PolicyTinygrad, VisionTiny
 
   def _run_model(self) -> NumpyDict:
     """Runs the Tinygrad model inference and parses the outputs."""
-    outputs = self.model_run(**self.inputs).contiguous().realize().uop.base.buffer.numpy()
+    outputs = self.model_run(**self.inputs).numpy().flatten()
     return self._parse_outputs(outputs)
 
   def _parse_outputs(self, model_outputs: np.ndarray) -> NumpyDict:
@@ -155,3 +157,4 @@ class TinygradSplitRunner(ModelRunner):
 
     # Return combined inputs (though they are stored within respective runners)
     return inputs
+    
