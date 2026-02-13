@@ -9,7 +9,6 @@ from openpilot.selfdrive.ui.onroad.alert_renderer import AlertRenderer
 from openpilot.selfdrive.ui.onroad.driver_state import DriverStateRenderer
 from openpilot.selfdrive.ui.onroad.hud_renderer import HudRenderer
 from openpilot.selfdrive.ui.onroad.model_renderer import ModelRenderer
-from openpilot.selfdrive.ui.mici.onroad.confidence_ball import ConfidenceBall
 from openpilot.selfdrive.ui.onroad.cameraview import CameraView
 from openpilot.system.ui.lib.application import gui_app
 from openpilot.common.transformations.camera import DEVICE_CAMERAS, DeviceCameraConfig, view_frame_from_device_frame
@@ -58,8 +57,6 @@ class AugmentedRoadView(CameraView, AugmentedRoadViewSP):
     self.alert_renderer = AlertRenderer()
     self.driver_state_renderer = DriverStateRenderer()
 
-    self._confidence_visual = ConfidenceBall(scale=1.5, visual=False)
-
     # debug
     self._pm = messaging.PubMaster(['uiDebug'])
 
@@ -97,6 +94,7 @@ class AugmentedRoadView(CameraView, AugmentedRoadViewSP):
     # Draw all UI overlays
     self.model_renderer.render(self._content_rect)
     AugmentedRoadViewSP.update_fade_out_bottom_overlay(self, self._content_rect)
+    self.update_confidence_visual(self._content_rect)
     self._hud_renderer.render(self._content_rect)
     self.alert_renderer.render(self._content_rect)
     self.driver_state_renderer.render(self._content_rect)
@@ -106,14 +104,6 @@ class AugmentedRoadView(CameraView, AugmentedRoadViewSP):
 
     # End clipping region
     rl.end_scissor_mode()
-
-    mode = ui_state.confidence_visual
-    if mode == 1:
-      self._confidence_visual._visual = 1
-      self._confidence_visual.render(self._content_rect)
-    elif mode == 2:
-      self._confidence_visual._visual = 2
-      self._confidence_visual.render(self._content_rect)
 
     # Draw colored border based on driving state
     self._draw_border(rect)
