@@ -20,7 +20,7 @@ class AugmentedRoadViewSP:
   def __init__(self):
     self._fade_texture = gui_app.texture("icons_mici/onroad/onroad_fade.png")
     self._fade_alpha_filter = FirstOrderFilter(0, 0.1, 1 / gui_app.target_fps)
-    self._confidence_visual = ConfidenceBall(scale=1.5, visual=False)
+    self._confidence_visual = ConfidenceBall(scale=1.5)
 
   def update_fade_out_bottom_overlay(self, _content_rect):
     # Fade out bottom of overlays for looks (only when engaged)
@@ -34,9 +34,6 @@ class AugmentedRoadViewSP:
 
   def update_confidence_visual(self, _content_rect):
     mode = ui_state.confidence_visual
-    if mode == 1:
-      self._confidence_visual._visual = 1
-      self._confidence_visual.render(_content_rect)
-    elif mode == 2:
-      self._confidence_visual._visual = 2
-      self._confidence_visual.render(_content_rect)
+    if mode in (1, 2):
+        self._confidence_visual._visual = mode
+        self._confidence_visual.render(_content_rect)

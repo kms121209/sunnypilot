@@ -27,7 +27,7 @@ class ConfidenceBallSP:
     # UIStatus.LONG_ONLY
     return BORDER_COLORS[UIStatus.LONG_ONLY]
 
-  def update_confidence_visual(self, content_rect, status_dot_radius, dot_height, top_dot_color, bottom_dot_color):
+  def update_confidence_visual(self, content_rect, status_dot_radius, dot_height, top_dot_color, bottom_dot_color) -> bool:
     if self._visual == 2:
       bar_width = int(20 * self._scale)
       bar_x = content_rect.x + content_rect.width - bar_width
@@ -35,7 +35,10 @@ class ConfidenceBallSP:
       fill_y = int(content_rect.y + (content_rect.height - fill_h))
       rl.draw_rectangle(int(bar_x), int(content_rect.y), bar_width, int(content_rect.height), rl.Color(20, 20, 20, 180))
       rl.draw_rectangle_gradient_v(int(bar_x), fill_y, bar_width, fill_h, top_dot_color, bottom_dot_color)
+      return True
     elif self._visual == 1:
       rl.draw_circle_gradient(int(content_rect.x + content_rect.width - status_dot_radius),
                            int(dot_height), status_dot_radius,
                            top_dot_color, bottom_dot_color)
+      return True
+    return False
