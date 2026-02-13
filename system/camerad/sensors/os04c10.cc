@@ -1,6 +1,7 @@
 #include <cmath>
 
 #include "system/camerad/sensors/sensor.h"
+#include "third_party/linux/include/msm_camsensor_sdk.h"
 
 namespace {
 
@@ -19,6 +20,17 @@ const uint32_t os04c10_analog_gains_reg[] = {
     0x540, 0x580, 0x5C0, 0x600, 0x640, 0x680, 0x6C0, 0x700, 0x740, 0x780, 0x7C0};
 
 }  // namespace
+
+void OS04C10::ife_downscale_configure() {
+  out_scale = 2;
+
+  pixel_size_mm = 0.002;
+  frame_width = 2688;
+  frame_height = 1520;
+  exposure_time_max = 2352;
+
+  init_reg_array.insert(init_reg_array.end(), std::begin(ife_downscale_override_array_os04c10), std::end(ife_downscale_override_array_os04c10));
+}
 
 OS04C10::OS04C10() {
   image_sensor = cereal::FrameData::ImageSensor::OS04C10;
@@ -40,7 +52,7 @@ OS04C10::OS04C10() {
   probe_expected_data = 0x5304;
   bits_per_pixel = 12;
   mipi_format = CAM_FORMAT_MIPI_RAW_12;
-  frame_data_type = 0x2c;
+  frame_data_type = CSI_RAW12;
   mclk_frequency = 24000000; // Hz
 
   // TODO: this was set from logs. actually calculate it out

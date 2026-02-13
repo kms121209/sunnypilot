@@ -10,6 +10,8 @@
 #include "common/util.h"
 #include "common/version.h"
 
+#include "sunnypilot/common/version.h"
+
 namespace {
 
 const int BORDER_SIZE = 3;
@@ -115,16 +117,21 @@ void ConsoleUI::initWindows() {
     w[Win::Log] = newwin(log_height - 2, max_width - 2 * BORDER_SIZE, 18, BORDER_SIZE);
     scrollok(w[Win::Log], true);
   }
-  w[Win::Help] = newwin(5, max_width - (2 * BORDER_SIZE), max_height - 6, BORDER_SIZE);
+  if (max_height >= 23) {
+    w[Win::Help] = newwin(5, max_width - (2 * BORDER_SIZE), max_height - 6, BORDER_SIZE);
+  } else if (max_height >= 17) {
+    w[Win::Help] = newwin(1, max_width - (2 * BORDER_SIZE), max_height - 1, BORDER_SIZE);
+    mvwprintw(w[Win::Help], 0, 0, "Expand screen vertically to list available commands");
+  }
 
   // set the title bar
   wbkgd(w[Win::Title], A_REVERSE);
-  mvwprintw(w[Win::Title], 0, 3, "openpilot replay %s", COMMA_VERSION);
+  mvwprintw(w[Win::Title], 0, 3, "sunnypilot replay %s", SUNNYPILOT_VERSION);
 
   // show windows on the real screen
   refresh();
   displayTimelineDesc();
-  displayHelp();
+  if (max_height >= 23) displayHelp();
   updateSummary();
   updateTimeline();
   for (auto win : w) {
@@ -257,7 +264,7 @@ void ConsoleUI::updateTimeline() {
     if (entry.type == TimelineType::Engaged) {
       mvwchgat(win, 1, start_pos, end_pos - start_pos + 1, A_COLOR, Color::Engaged, NULL);
       mvwchgat(win, 2, start_pos, end_pos - start_pos + 1, A_COLOR, Color::Engaged, NULL);
-    } else if (entry.type == TimelineType::UserFlag) {
+    } else if (entry.type == TimelineType::UserBookmark) {
       mvwchgat(win, 3, start_pos, end_pos - start_pos + 1, ACS_S3, Color::Cyan, NULL);
     } else {
       auto color_id = Color::Green;
@@ -329,7 +336,7 @@ void ConsoleUI::handleKey(char c) {
   } else if (c == 'd') {
     replay->seekToFlag(FindFlag::nextDisEngagement);
   } else if (c == 't') {
-    replay->seekToFlag(FindFlag::nextUserFlag);
+    replay->seekToFlag(FindFlag::nextUserBookmark);
   } else if (c == 'i') {
     replay->seekToFlag(FindFlag::nextInfo);
   } else if (c == 'w') {

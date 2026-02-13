@@ -1,5 +1,6 @@
 from collections import defaultdict
 from collections.abc import Callable
+from typing import cast
 import capnp
 import functools
 import traceback
@@ -9,10 +10,11 @@ from opendbc.car.fingerprints import MIGRATION
 from opendbc.car.toyota.values import EPS_SCALE, ToyotaSafetyFlags
 from opendbc.car.ford.values import CAR as FORD, FordFlags, FordSafetyFlags
 from opendbc.car.hyundai.values import HyundaiSafetyFlags
+from opendbc.car.gm.values import GMSafetyFlags
 from openpilot.selfdrive.modeld.constants import ModelConstants
 from openpilot.selfdrive.modeld.fill_model_msg import fill_xyz_poly, fill_lane_line_meta
 from openpilot.selfdrive.test.process_replay.vision_meta import meta_from_encode_index
-from openpilot.selfdrive.controls.lib.longitudinal_planner import get_accel_from_plan
+from openpilot.selfdrive.controls.lib.longitudinal_planner import get_accel_from_plan, CONTROL_N_T_IDX
 from openpilot.system.manager.process_config import managed_processes
 from openpilot.tools.lib.logreader import LogIterable
 
@@ -21,13 +23,14 @@ MigrationOps = tuple[list[tuple[int, capnp.lib.capnp._DynamicStructReader]], lis
 MigrationFunc = Callable[[list[MessageWithIndex]], MigrationOps]
 
 
-## rules for migration functions
-## 1. must use the decorator @migration(inputs=[...], product="...") and MigrationFunc signature
-## 2. it only gets the messages that are in the inputs list
-## 3. product is the message type created by the migration function, and the function will be skipped if product type already exists in lr
-## 4. it must return a list of operations to be applied to the logreader (replace, add, delete)
-## 5. all migration functions must be independent of each other
-def migrate_all(lr: LogIterable, manager_states: bool = False, panda_states: bool = False, camera_states: bool = False):
+# rules for migration functions
+# 1. must use the decorator @migration(inputs=[...], product="...") and MigrationFunc signature
+# 2. it only gets the messages that are in the inputs list
+# 3. product is the message type created by the migration function, and the function will be skipped if product type already exists in lr
+# 4. it must return a list of operations to be applied to the logreader (replace, add, delete)
+# 5. all migration functions must be independent of each other
+def migrate_all(lr: LogIterable, manager_states: bool = False, panda_states: bool = False, camera_states: bool = False,
+                live_location_kalman: bool = True):
   migrations = [
     migrate_sensorEvents,
     migrate_carParams,
@@ -36,7 +39,6 @@ def migrate_all(lr: LogIterable, manager_states: bool = False, panda_states: boo
     migrate_carOutput,
     migrate_controlsState,
     migrate_carState,
-    migrate_liveLocationKalman,
     migrate_liveTracks,
     migrate_driverAssistance,
     migrate_drivingModelData,
@@ -50,6 +52,8 @@ def migrate_all(lr: LogIterable, manager_states: bool = False, panda_states: boo
     migrations.extend([migrate_pandaStates, migrate_peripheralState])
   if camera_states:
     migrations.append(migrate_cameraStates)
+  if live_location_kalman:
+    migrations.append(migrate_liveLocationKalman)
 
   return migrate(lr, migrations)
 
@@ -66,7 +70,7 @@ def migrate(lr: LogIterable, migration_funcs: list[MigrationFunc]):
     if migration.product in grouped: # skip if product already exists
       continue
 
-    sorted_indices = sorted(ii for i in migration.inputs for ii in grouped[i])
+    sorted_indices = sorted(ii for i in cast(list[str], migration.inputs) for ii in grouped.get(i, []))
     msg_gen = [(i, lr[i]) for i in sorted_indices]
     r_ops, a_ops, d_ops = migration(msg_gen)
     replace_ops.extend(r_ops)
@@ -108,7 +112,7 @@ def migrate_longitudinalPlan(msgs):
     if msg.which() != 'longitudinalPlan':
       continue
     new_msg = msg.as_builder()
-    a_target, should_stop = get_accel_from_plan(msg.longitudinalPlan.speeds, msg.longitudinalPlan.accels)
+    a_target, should_stop = get_accel_from_plan(msg.longitudinalPlan.speeds, msg.longitudinalPlan.accels, CONTROL_N_T_IDX)
     new_msg.longitudinalPlan.aTarget, new_msg.longitudinalPlan.shouldStop = float(a_target), bool(should_stop)
     ops.append((index, new_msg.as_reader()))
   return ops, [], []
@@ -241,14 +245,16 @@ def migrate_gpsLocation(msgs):
 
 @migration(inputs=["deviceState", "initData"])
 def migrate_deviceState(msgs):
+  init_data = next((m.initData for _, m in msgs if m.which() == 'initData'), None)
+  device_state = next((m.deviceState for _, m in msgs if m.which() == 'deviceState'), None)
+  if init_data is None or device_state is None:
+    return [], [], []
+
   ops = []
-  dt = None
   for i, msg in msgs:
-    if msg.which() == 'initData':
-      dt = msg.initData.deviceType
     if msg.which() == 'deviceState':
       n = msg.as_builder()
-      n.deviceState.deviceType = dt
+      n.deviceState.deviceType = init_data.deviceType
       ops.append((i, n.as_reader()))
   return ops, [], []
 
@@ -272,9 +278,11 @@ def migrate_pandaStates(msgs):
     "TOYOTA_PRIUS": EPS_SCALE["TOYOTA_PRIUS"] | ToyotaSafetyFlags.STOCK_LONGITUDINAL,
     "TOYOTA_RAV4": EPS_SCALE["TOYOTA_RAV4"] | ToyotaSafetyFlags.ALT_BRAKE,
     "KIA_EV6": HyundaiSafetyFlags.EV_GAS | HyundaiSafetyFlags.CANFD_LKA_STEERING,
+    "CHEVROLET_VOLT": GMSafetyFlags.EV,
+    "CHEVROLET_BOLT_EUV": GMSafetyFlags.EV | GMSafetyFlags.HW_CAM,
   }
   # TODO: get new Ford route
-  safety_param_migration |= {car: FordSafetyFlags.LONG_CONTROL for car in (set(FORD) - FORD.with_flags(FordFlags.CANFD))}
+  safety_param_migration |= dict.fromkeys((set(FORD) - FORD.with_flags(FordFlags.CANFD)), FordSafetyFlags.LONG_CONTROL)
 
   # Migrate safety param base on carParams
   CP = next((m.carParams for _, m in msgs if m.which() == 'carParams'), None)
@@ -301,6 +309,8 @@ def migrate_pandaStates(msgs):
     elif msg.which() == 'pandaStates':
       new_msg = msg.as_builder()
       new_msg.pandaStates[-1].safetyParam = safety_param
+      # Clear DISABLE_DISENGAGE_ON_GAS bit to fix controls mismatch
+      new_msg.pandaStates[-1].alternativeExperience &= ~1
       ops.append((index, new_msg.as_reader()))
   return ops, [], []
 

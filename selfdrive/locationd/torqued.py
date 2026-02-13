@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
+import os
 import numpy as np
 from collections import deque, defaultdict
 
 import cereal.messaging as messaging
 from cereal import car, log
-from opendbc.car.vehicle_model import ACCELERATION_DUE_TO_GRAVITY
+from openpilot.common.constants import ACCELERATION_DUE_TO_GRAVITY
 from openpilot.common.params import Params
 from openpilot.common.realtime import config_realtime_process, DT_MDL
 from openpilot.common.filter_simple import FirstOrderFilter
 from openpilot.common.swaglog import cloudlog
 from openpilot.selfdrive.locationd.helpers import PointBuckets, ParameterEstimator, PoseCalibrator, Pose
+from openpilot.sunnypilot.livedelay.helpers import get_lat_delay
+from openpilot.sunnypilot.selfdrive.locationd.torqued_ext import TorqueEstimatorExt
 
 HISTORY = 5  # secs
 POINTS_PER_BUCKET = 1500
@@ -32,7 +35,7 @@ MIN_BUCKET_POINTS = np.array([100, 300, 500, 500, 500, 500, 300, 100])
 MIN_ENGAGE_BUFFER = 2  # secs
 
 VERSION = 1  # bump this to invalidate old parameter caches
-ALLOWED_CARS = ['toyota', 'hyundai']
+ALLOWED_CARS = ['toyota', 'hyundai', 'rivian', 'honda', 'volkswagen']
 
 
 def slope2rot(slope):
@@ -49,10 +52,13 @@ class TorqueBuckets(PointBuckets):
         break
 
 
-class TorqueEstimator(ParameterEstimator):
+class TorqueEstimator(ParameterEstimator, TorqueEstimatorExt):
   def __init__(self, CP, decimated=False, track_all_points=False):
+    ParameterEstimator.__init__(self)
+    TorqueEstimatorExt.__init__(self, CP)
+    self.CP = CP
     self.hist_len = int(HISTORY / DT_MDL)
-    self.lag = CP.steerActuatorDelay + .2  # from controlsd
+    self.lag = 0.0
     self.track_all_points = track_all_points  # for offline analysis, without max lateral accel or max steer torque filters
     if decimated:
       self.min_bucket_points = MIN_BUCKET_POINTS / 10
@@ -79,6 +85,8 @@ class TorqueEstimator(ParameterEstimator):
 
     self.calibrator = PoseCalibrator()
 
+    TorqueEstimatorExt.initialize_custom_params(self, decimated)
+
     self.reset()
 
     initial_params = {
@@ -95,6 +103,7 @@ class TorqueEstimator(ParameterEstimator):
 
     # try to restore cached params
     params = Params()
+    self.params = params
     params_cache = params.get("CarParamsPrevRoute")
     torque_cache = params.get("LiveTorqueParameters")
     if params_cache is not None and torque_cache is not None:
@@ -175,7 +184,8 @@ class TorqueEstimator(ParameterEstimator):
       self.raw_points["steer_override"].append(msg.steeringPressed)
     elif which == "liveCalibration":
       self.calibrator.feed_live_calib(msg)
-
+    elif which == "liveDelay":
+      self.lag = get_lat_delay(self.params, msg.lateralDelay)
     # calculate lateral accel from past steering torque
     elif which == "livePose":
       if len(self.raw_points['steer_torque']) == self.hist_len:
@@ -232,6 +242,7 @@ class TorqueEstimator(ParameterEstimator):
     liveTorqueParameters.latAccelOffsetFiltered = float(self.filtered_params['latAccelOffset'].x)
     liveTorqueParameters.frictionCoefficientFiltered = float(self.filtered_params['frictionCoefficient'].x)
     liveTorqueParameters.totalBucketPoints = len(self.filtered_points)
+    liveTorqueParameters.calPerc = self.filtered_points.get_valid_percent()
     liveTorqueParameters.decay = self.decay
     liveTorqueParameters.maxResets = self.resets
     return msg
@@ -240,8 +251,10 @@ class TorqueEstimator(ParameterEstimator):
 def main(demo=False):
   config_realtime_process([0, 1, 2, 3], 5)
 
+  DEBUG = bool(int(os.getenv("DEBUG", "0")))
+
   pm = messaging.PubMaster(['liveTorqueParameters'])
-  sm = messaging.SubMaster(['carControl', 'carOutput', 'carState', 'liveCalibration', 'livePose'], poll='livePose')
+  sm = messaging.SubMaster(['carControl', 'carOutput', 'carState', 'liveCalibration', 'livePose', 'liveDelay'], poll='livePose')
 
   params = Params()
   estimator = TorqueEstimator(messaging.log_from_bytes(params.get("CarParams", block=True), car.CarParams))
@@ -254,9 +267,11 @@ def main(demo=False):
           t = sm.logMonoTime[which] * 1e-9
           estimator.handle_log(t, which, sm[which])
 
+    TorqueEstimatorExt.update_use_params(estimator)
+
     # 4Hz driven by livePose
     if sm.frame % 5 == 0:
-      pm.send('liveTorqueParameters', estimator.get_msg(valid=sm.all_checks()))
+      pm.send('liveTorqueParameters', estimator.get_msg(valid=sm.all_checks(), with_points=DEBUG))
 
     # Cache points every 60 seconds while onroad
     if sm.frame % 240 == 0:

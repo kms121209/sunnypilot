@@ -28,27 +28,11 @@ if [[ $(command -v brew) == "" ]]; then
     echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> $RC_FILE
     eval "$(/opt/homebrew/bin/brew shellenv)"
   fi
+else
+    brew up
 fi
 
-brew bundle --file=- <<-EOS
-brew "git-lfs"
-brew "zlib"
-brew "capnp"
-brew "coreutils"
-brew "eigen"
-brew "ffmpeg"
-brew "glfw"
-brew "libarchive"
-brew "libusb"
-brew "libtool"
-brew "llvm"
-brew "openssl@3.0"
-brew "qt@5"
-brew "zeromq"
-cask "gcc-arm-embedded"
-brew "portaudio"
-brew "gcc@13"
-EOS
+brew bundle --file=$DIR/Brewfile
 
 echo "[ ] finished brew install t=$SECONDS"
 

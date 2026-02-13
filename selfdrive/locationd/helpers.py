@@ -1,8 +1,46 @@
 import numpy as np
 from typing import Any
+from functools import cache
 
 from cereal import log
 from openpilot.common.transformations.orientation import rot_from_euler, euler_from_rot
+
+
+@cache
+def fft_next_good_size(n: int) -> int:
+    """
+    smallest composite of 2, 3, 5, 7, 11 that is >= n
+    inspired by pocketfft
+    """
+    if n <= 6:
+      return n
+    best, f2 = 2 * n, 1
+    while f2 < best:
+        f23 = f2
+        while f23 < best:
+            f235 = f23
+            while f235 < best:
+                f2357 = f235
+                while f2357 < best:
+                    f235711 = f2357
+                    while f235711 < best:
+                        best = f235711 if f235711 >= n else best
+                        f235711 *= 11
+                    f2357 *= 7
+                f235 *= 5
+            f23 *= 3
+        f2 *= 2
+    return best
+
+
+def parabolic_peak_interp(R, max_index):
+  if max_index == 0 or max_index == len(R) - 1:
+    return max_index
+
+  y_m1, y_0, y_p1 = R[max_index - 1], R[max_index], R[max_index + 1]
+  offset = 0.5 * (y_p1 - y_m1) / (2 * y_0 - y_p1 - y_m1)
+
+  return max_index + offset
 
 
 def rotate_cov(rot_matrix, cov_in):
@@ -44,13 +82,19 @@ class PointBuckets:
     total_points_valid = self.__len__() >= self.min_points_total
     return individual_buckets_valid and total_points_valid
 
+  def get_valid_percent(self) -> int:
+    total_points_perc = min(self.__len__() / self.min_points_total * 100, 100)
+    individual_buckets_perc = min(min(len(v) / min_pts * 100 for v, min_pts in
+                                      zip(self.buckets.values(), self.buckets_min_points.values(), strict=True)), 100)
+    return int((total_points_perc + individual_buckets_perc) / 2)
+
   def is_calculable(self) -> bool:
     return all(len(v) > 0 for v in self.buckets.values())
 
   def add_point(self, x: float, y: float) -> None:
     raise NotImplementedError
 
-  def get_points(self, num_points: int = None) -> Any:
+  def get_points(self, num_points: int | None = None) -> Any:
     points = np.vstack([x.arr for x in self.buckets.values()])
     if num_points is None:
       return points
@@ -128,7 +172,7 @@ class PoseCalibrator:
     ned_from_calib_euler = self._ned_from_calib(pose.orientation)
     angular_velocity_calib = self._transform_calib_from_device(pose.angular_velocity)
     acceleration_calib = self._transform_calib_from_device(pose.acceleration)
-    velocity_calib = self._transform_calib_from_device(pose.angular_velocity)
+    velocity_calib = self._transform_calib_from_device(pose.velocity)
 
     return Pose(ned_from_calib_euler, velocity_calib, acceleration_calib, angular_velocity_calib)
 

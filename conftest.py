@@ -2,7 +2,6 @@ import contextlib
 import gc
 import os
 import pytest
-import random
 
 from openpilot.common.prefix import OpenpilotPrefix
 from openpilot.system.manager import manager
@@ -18,6 +17,7 @@ collect_ignore = [
 collect_ignore_glob = [
   "selfdrive/debug/*.py",
   "selfdrive/modeld/*.py",
+  "sunnypilot/modeld*/*.py",
 ]
 
 
@@ -48,8 +48,6 @@ def clean_env():
 
 @pytest.fixture(scope="function", autouse=True)
 def openpilot_function_fixture(request):
-  random.seed(0)
-
   with clean_env():
     # setup a clean environment for each test
     with OpenpilotPrefix(shared_download_cache=request.node.get_closest_marker("shared_download_cache") is not None) as prefix:

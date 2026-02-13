@@ -13,7 +13,7 @@ cd $ROOT
 
 FAILED=0
 
-IGNORED_FILES="uv\.lock|docs\/CARS.md"
+IGNORED_FILES="uv\.lock|docs\/CARS.md|LICENSE\.md"
 IGNORED_DIRS="^third_party.*|^msgq.*|^msgq_repo.*|^opendbc.*|^opendbc_repo.*|^cereal.*|^panda.*|^rednose.*|^rednose_repo.*|^tinygrad.*|^tinygrad_repo.*|^teleoprtc.*|^teleoprtc_repo.*"
 
 function run() {
@@ -55,8 +55,8 @@ function run_tests() {
   run "check_nomerge_comments" $DIR/check_nomerge_comments.sh $ALL_FILES
 
   if [[ -z "$FAST" ]]; then
-    run "mypy" mypy $PYTHON_FILES
-    run "codespell" codespell $ALL_FILES
+    run "ty" ty check
+    run "codespell" codespell $ALL_FILES --ignore-words=$ROOT/.codespellignore
   fi
 
   return $FAILED
@@ -69,7 +69,7 @@ function help() {
   echo ""
   echo -e "${BOLD}${UNDERLINE}Tests:${NC}"
   echo -e "  ${BOLD}ruff${NC}"
-  echo -e "  ${BOLD}mypy${NC}"
+  echo -e "  ${BOLD}ty${NC}"
   echo -e "  ${BOLD}codespell${NC}"
   echo -e "  ${BOLD}check_added_large_files${NC}"
   echo -e "  ${BOLD}check_shebang_scripts_are_executable${NC}"
@@ -81,11 +81,11 @@ function help() {
   echo "          Specify tests to skip separated by spaces"
   echo ""
   echo -e "${BOLD}${UNDERLINE}Examples:${NC}"
-  echo "  op lint mypy ruff"
-  echo "          Only run the mypy and ruff tests"
+  echo "  op lint ty ruff"
+  echo "          Only run the ty and ruff tests"
   echo ""
-  echo "  op lint --skip mypy ruff"
-  echo "          Skip the mypy and ruff tests"
+  echo "  op lint --skip ty ruff"
+  echo "          Skip the ty and ruff tests"
   echo ""
   echo "  op lint"
   echo "          Run all the tests"

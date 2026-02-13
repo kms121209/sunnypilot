@@ -1,10 +1,8 @@
 # must be built with scons
-from msgq.ipc_pyx import Context, Poller, SubSocket, PubSocket, SocketEventHandle, toggle_fake_events, \
-                                set_fake_prefix, get_fake_prefix, delete_fake_prefix, wait_for_one_event
-from msgq.ipc_pyx import MultiplePublishersError, IpcError
-from msgq import fake_event_handle, pub_sock, sub_sock, drain_sock_raw
+from msgq import fake_event_handle, drain_sock_raw, MultiplePublishersError, IpcError, \
+                 Context, Poller, SubSocket, PubSocket, SocketEventHandle, toggle_fake_events, \
+                 set_fake_prefix, get_fake_prefix, delete_fake_prefix, wait_for_one_event
 import msgq
-
 import os
 import capnp
 import time
@@ -13,9 +11,23 @@ from typing import Optional, List, Union, Dict
 
 from cereal import log
 from cereal.services import SERVICE_LIST
-from openpilot.common.util import MovingAverage
+from openpilot.common.utils import MovingAverage
 
 NO_TRAVERSAL_LIMIT = 2**64-1
+
+
+def pub_sock(endpoint: str) -> PubSocket:
+  service = SERVICE_LIST.get(endpoint)
+  segment_size = service.queue_size if service else 0
+  return msgq.pub_sock(endpoint, segment_size)
+
+
+def sub_sock(endpoint: str, poller: Optional[Poller] = None, addr: str = "127.0.0.1",
+             conflate: bool = False, timeout: Optional[int] = None) -> SubSocket:
+  service = SERVICE_LIST.get(endpoint)
+  segment_size = service.queue_size if service else 0
+  return msgq.sub_sock(endpoint, poller=poller, addr=addr, conflate=conflate,
+                       timeout=timeout, segment_size=segment_size)
 
 
 def reset_context():
@@ -145,12 +157,16 @@ class SubMaster:
     self.updated = {s: False for s in services}
     self.recv_time = {s: 0. for s in services}
     self.recv_frame = {s: 0 for s in services}
-    self.alive = {s: False for s in services}
-    self.freq_ok = {s: False for s in services}
     self.sock = {}
     self.data = {}
-    self.valid = {}
-    self.logMonoTime = {}
+    self.logMonoTime = {s: 0 for s in services}
+
+    # zero-frequency / on-demand services are always alive and presumed valid; all others must pass checks
+    on_demand = {s: SERVICE_LIST[s].frequency <= 1e-5 for s in services}
+    self.static_freq_services = set(s for s in services if not on_demand[s])
+    self.alive = {s: on_demand[s] for s in services}
+    self.freq_ok = {s: on_demand[s] for s in services}
+    self.valid = {s: on_demand[s] for s in services}
 
     self.freq_tracker: Dict[str, FrequencyTracker] = {}
     self.poller = Poller()
@@ -177,8 +193,6 @@ class SubMaster:
         data = new_message(s, 0) # lists
 
       self.data[s] = getattr(data.as_reader(), s)
-      self.logMonoTime[s] = 0
-      self.valid[s] = False
       self.freq_tracker[s] = FrequencyTracker(SERVICE_LIST[s].frequency, self.update_freq, s == poll)
 
   def __getitem__(self, s: str) -> capnp.lib.capnp._DynamicStructReader:
@@ -215,14 +229,10 @@ class SubMaster:
       self.logMonoTime[s] = msg.logMonoTime
       self.valid[s] = msg.valid
 
-    for s in self.services:
-      if SERVICE_LIST[s].frequency > 1e-5 and not self.simulation:
-        # alive if delay is within 10x the expected frequency
-        self.alive[s] = (cur_time - self.recv_time[s]) < (10. / SERVICE_LIST[s].frequency)
-        self.freq_ok[s] = self.freq_tracker[s].valid
-      else:
-        self.freq_ok[s] = True
-        self.alive[s] = self.seen[s] if self.simulation else True
+    for s in self.static_freq_services:
+      # alive if delay is within 10x the expected frequency; checks relaxed in simulator
+      self.alive[s] = (cur_time - self.recv_time[s]) < (10. / SERVICE_LIST[s].frequency) or (self.seen[s] and self.simulation)
+      self.freq_ok[s] = self.freq_tracker[s].valid or self.simulation
 
   def all_alive(self, service_list: Optional[List[str]] = None) -> bool:
     return all(self.alive[s] for s in (service_list or self.services) if s not in self.ignore_alive)

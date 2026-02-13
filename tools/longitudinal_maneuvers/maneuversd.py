@@ -3,7 +3,7 @@ import numpy as np
 from dataclasses import dataclass
 
 from cereal import messaging, car
-from opendbc.car.common.conversions import Conversions as CV
+from openpilot.common.constants import CV
 from openpilot.common.realtime import DT_MDL
 from openpilot.common.params import Params
 from openpilot.common.swaglog import cloudlog
@@ -132,7 +132,7 @@ def main():
   CP = messaging.log_from_bytes(params.get("CarParams", block=True), car.CarParams)
 
   sm = messaging.SubMaster(['carState', 'carControl', 'controlsState', 'selfdriveState', 'modelV2'], poll='modelV2')
-  pm = messaging.PubMaster(['longitudinalPlan', 'driverAssistance', 'alertDebug'])
+  pm = messaging.PubMaster(['longitudinalPlan', 'longitudinalPlanSP', 'driverAssistance', 'alertDebug'])
 
   maneuvers = iter(MANEUVERS)
   maneuver = None
@@ -176,6 +176,10 @@ def main():
     longitudinalPlan.speeds = [0.2]  # triggers carControl.cruiseControl.resume in controlsd
 
     pm.send('longitudinalPlan', plan_send)
+
+    plan_sp_send = messaging.new_message('longitudinalPlanSP')
+    plan_sp_send.valid = True
+    pm.send('longitudinalPlanSP', plan_sp_send)
 
     assistance_send = messaging.new_message('driverAssistance')
     assistance_send.valid = True
