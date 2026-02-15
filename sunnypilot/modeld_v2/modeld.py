@@ -160,10 +160,6 @@ class ModelState(ModelStateBase):
       if input_name_prev and input_name_prev in self.temporal_buffers:
         self.process_desired_curvature(outputs, input_name_prev)
 
-    if 'lat_planner_solution' in outputs and 'lat_planner_state' in self.numpy_inputs:
-      self.numpy_inputs['lat_planner_state'][0, 2] = np.interp(DT_MDL, self.constants.T_IDXS, outputs['lat_planner_solution'][0, :, 2])
-      self.numpy_inputs['lat_planner_state'][0, 3] = np.interp(DT_MDL, self.constants.T_IDXS, outputs['lat_planner_solution'][0, :, 3])
-
     return outputs
 
   def process_desired_curvature(self, outputs, input_name_prev):
@@ -342,8 +338,6 @@ def main(demo=False):
 
     if "lateral_control_params" in model.numpy_inputs.keys():
       inputs['lateral_control_params'] = np.array([v_ego, lat_delay], dtype=np.float32)
-    if 'driving_style' in model.numpy_inputs:
-      inputs['driving_style'] = np.array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0], dtype=np.float32)
 
     mt1 = time.perf_counter()
     model_output = model.run(bufs, transforms, inputs, prepare_only)

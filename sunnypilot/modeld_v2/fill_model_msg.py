@@ -13,14 +13,6 @@ ConfidenceClass = log.ModelDataV2.ConfidenceClass
 
 
 def get_curvature_from_output(output, plan, vego, lat_action_t, mlsim):
-  if 'lat_planner_solution' in output:
-    x, y, yaw, yaw_rate = [output['lat_planner_solution'][0, :, i].tolist() for i in range(4)]
-    x_sol = np.column_stack([x, y, yaw, yaw_rate])
-    safe_vego = max(MIN_SPEED, vego)
-    psis = x_sol[0:CONTROL_N, 2].tolist()
-    curvatures = (x_sol[0:CONTROL_N, 3] / safe_vego).tolist()
-    return get_lag_adjusted_curvature(lat_action_t, safe_vego, psis, curvatures)
-
   if not mlsim:
     if desired_curv := output.get('desired_curvature'):  # If the model outputs the desired curvature, use that directly
       return float(desired_curv[0, 0])
