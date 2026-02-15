@@ -74,8 +74,6 @@ class ModelState(ModelStateBase):
 
     buffer_length = 5 if self.model_runner.is_20hz else 2
     self.warp = Warp(buffer_length)
-
-
     self.prev_desire = np.zeros(self.constants.DESIRE_LEN, dtype=np.float32)
     self.numpy_inputs = {}
     self.temporal_buffers = {}
