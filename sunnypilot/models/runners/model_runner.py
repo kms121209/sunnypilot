@@ -140,7 +140,6 @@ class ModelRunner(ModularRunner):
     :param numpy_inputs: Dictionary of numpy arrays for non-image inputs.
     :return: Dictionary of prepared inputs ready for the model.
     """
-
     raise NotImplementedError
 
   @abstractmethod
