@@ -150,10 +150,20 @@ class UIStateSP:
 
 
 class DeviceSP:
-  @staticmethod
-  def _set_awake(on: bool, _ui_state):
+  def _set_awake(self, on: bool, _ui_state):
     if _ui_state.boot_offroad_mode == 1 and not on:
       _ui_state.params.put_bool("OffroadMode", True)
+
+    if not on and _ui_state.screensaver_enabled:
+      if _ui_state.screensaver.was_dismissed:
+        _ui_state.screensaver.deinit()
+        return True
+      else:
+        _ui_state.screensaver.initialize(dismiss_callback=lambda: self._set_awake(False))
+        gui_app.set_modal_overlay(_ui_state.screensaver)
+        return False
+
+    return True
 
   @staticmethod
   def set_onroad_brightness(_ui_state, awake: bool, cur_brightness: float) -> float:

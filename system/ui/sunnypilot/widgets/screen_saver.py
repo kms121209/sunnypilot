@@ -27,12 +27,22 @@ class ScreenSaverSP(Widget):
     self.text = "sunnypilot"
     self.font_size = 50 if self._is_mici else 200
     self._start_time = None
+    self._dismiss = False
+    self.dismiss_callback = None
+
+  @property
+  def was_dismissed(self) -> bool:
+    return self._dismiss
 
   def initialize(self, dismiss_callback: Callable):
     if self._start_time is None:
       self._start_time = time.monotonic()
     self.dismiss_callback = dismiss_callback
     self._dismiss = False
+
+  def deinit(self):
+    self._dismiss = False
+    self._start_time = None
 
   def _handle_mouse_press(self, mouse_pos) -> bool:
     self._reset()
