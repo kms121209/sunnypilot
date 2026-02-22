@@ -18,7 +18,7 @@ class MiciHomeLayoutSP(MiciHomeLayout):
 
     if ui_state.always_offroad:
       text = "always offroad"
-      font_size = 28
+      font_size = 32
       padding_x = 10
       padding_y = 10
       font = gui_app.font(FontWeight.BOLD)
@@ -39,7 +39,7 @@ class MiciHomeLayoutSP(MiciHomeLayout):
 
       # Draw white text centered on the rectangle
       text_x = pos_x + padding_x
-      text_y = self._rect.y + self.rect.height - rect_height / 2 - Y_CENTER + padding_y
+      text_y = self._rect.y + self.rect.height - rect_height / 2 - Y_CENTER + padding_y / 1.4
       rl.draw_text_ex(font, text, rl.Vector2(int(text_x), int(text_y)), font_size, 0, rl.WHITE)
 
 
