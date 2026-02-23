@@ -1279,18 +1279,13 @@ FW_VERSIONS = {
       b'\xf1\x00T01G00BL  T01I00A1  DOS2T16X4XI00NS0\x99L\xeeq',
     ],
   },
-  CAR.KIA_PV5: {
-    (Ecu.fwdCamera, 0x7c4, None): [
-      b'\xf1\x00SW  MFC  AT KOR LHD 1.00 1.02 99211-SW000 250729',
-    ],
-    (Ecu.fwdRadar, 0x7d0, None): [
-      b'\xf1\x00SW__ RDR -----      1.00 1.01 99110-SW000         ',
-    ],
-    (Ecu.eps, 0x7d4, None): [
-      b'\xf1\x00SW1 MDPS C 1.00 1.01 56310-SW000 5711',
-    ],
-    (Ecu.abs, 0x7d1, None): [
-      b'\xf1\x00SW1 ESC \x0b 102 %\x07\x18 58910-SW000',
-    ],
-  },
+CAR.KIA_PV5: {
+  (Ecu.fwdCamera, 0x7c4, None): [
+    b'\xf1\x00SW  MFC  AT KOR LHD 1.00 1.02 99211-SW000 250729',
+  ],
+  (Ecu.fwdRadar, 0x7d0, None): [
+    b'\xf1\x00SW__ RDR -----      1.00 1.01 99110-SW000         ',
+    b'\xf1\x00SW__ RDR -----      1.00 1.01 99110-SW000',
+  ],
+},
 }
