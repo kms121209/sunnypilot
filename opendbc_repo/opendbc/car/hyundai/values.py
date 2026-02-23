@@ -368,7 +368,7 @@ class CAR(Platforms):
   )
 
   # Kia
-  KIA_PV5 = HyundaiPlatformConfig(
+  KIA_PV5 = HyundaiCanFDPlatformConfig(
     [
       HyundaiCarDocs("Kia PV5 2026", "All",
         car_parts=CarParts.common([CarHarness.hyundai_a])),
