@@ -374,7 +374,7 @@ class CAR(Platforms):
         car_parts=CarParts.common([CarHarness.hyundai_a])),
     ],
     CarSpecs(mass=1800, wheelbase=2.995, steerRatio=13.0),
-    flags=HyundaiFlags.EV,
+    flags=HyundaiFlags.EV | HyundaiFlags.CANFD_NO_RADAR_DISABLE,
   )
   KIA_FORTE = HyundaiPlatformConfig(
     [
