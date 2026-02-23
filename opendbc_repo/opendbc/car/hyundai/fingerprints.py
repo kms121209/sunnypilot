@@ -2,9 +2,6 @@
 from opendbc.car.structs import CarParams
 from opendbc.car.hyundai.values import CAR
 
-from opendbc.sunnypilot.car.fingerprints_ext import merge_fw_versions
-from opendbc.sunnypilot.car.hyundai.fingerprints_ext import FW_VERSIONS_EXT
-
 Ecu = CarParams.Ecu
 
 # The existence of SCC or RDR in the fwdRadar FW usually determines the radar's function,
@@ -1282,6 +1279,13 @@ FW_VERSIONS = {
       b'\xf1\x00T01G00BL  T01I00A1  DOS2T16X4XI00NS0\x99L\xeeq',
     ],
   },
+CAR.KIA_PV5: {
+  (Ecu.fwdCamera, 0x7c4, None): [
+    b'\xf1\x00SW  MFC  AT KOR LHD 1.00 1.02 99211-SW000 250729',
+  ],
+  (Ecu.fwdRadar, 0x7d0, None): [
+    b'\xf1\x00SW__ RDR -----      1.00 1.01 99110-SW000         ',
+    b'\xf1\x00SW__ RDR -----      1.00 1.01 99110-SW000',
+  ],
+},
 }
-
-FW_VERSIONS = merge_fw_versions(FW_VERSIONS, FW_VERSIONS_EXT)
