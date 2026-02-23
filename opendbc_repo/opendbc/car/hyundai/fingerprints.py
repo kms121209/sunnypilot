@@ -1280,19 +1280,17 @@ FW_VERSIONS = {
     ],
   },
   CAR.KIA_PV5: {
-    (Ecu.abs, 0x7d1, None): [
-      b'\xf1\x00SW1 ESC \x0b 102 %\x07\x18 58910-SW000',
-    ],
-    (Ecu.eps, 0x7d4, None): [
-      b'\xf1\x00SW1 MDPS C 1.00 1.01 56310-SW000 5711',
-    ],
     (Ecu.fwdCamera, 0x7c4, None): [
       b'\xf1\x00SW  MFC  AT KOR LHD 1.00 1.02 99211-SW000 250729',
     ],
     (Ecu.fwdRadar, 0x7d0, None): [
       b'\xf1\x00SW__ RDR -----      1.00 1.01 99110-SW000         ',
-      # 복사/붙여넣기 과정에서 맨 뒤 공백이 날아가는 경우 대비
-      b'\xf1\x00SW__ RDR -----      1.00 1.01 99110-SW000',
+    ],
+    (Ecu.eps, 0x7d4, None): [
+      b'\xf1\x00SW1 MDPS C 1.00 1.01 56310-SW000 5711',
+    ],
+    (Ecu.abs, 0x7d1, None): [
+      b'\xf1\x00SW1 ESC \x0b 102 %\x07\x18 58910-SW000',
     ],
   },
 }
