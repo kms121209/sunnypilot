@@ -370,7 +370,8 @@ class CAR(Platforms):
   # Kia
   KIA_PV5 = HyundaiPlatformConfig(
     [
-      HyundaiCarDocs("Kia PV5 2026", "All", car_parts=CarParts.common([CarHarness.hyundai_a])),
+      HyundaiCarDocs("Kia PV5 2026", "All",
+        car_parts=CarParts.common([CarHarness.hyundai_a])),
     ],
     CarSpecs(mass=1800, wheelbase=2.995, steerRatio=13.0),
     flags=HyundaiFlags.EV,
